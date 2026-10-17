@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, FlatList } from 'react-native';
 
 function formatUSD(n: number) {
   const [dollars, cents] = n.toFixed(2).split('.');
@@ -7,61 +7,77 @@ function formatUSD(n: number) {
   return '$' + withCommas + '.' + cents;
 }
 
+type Coin = {
+  id: string;
+  symbol: string;
+  name: string;
+  current_price: number;
+  price_change_percentage_24h: number;
+};
+
 export default function Index() {
-  const [btc, setBtc] = useState('Loading...');
-  const [btcChange, setBtcChange] = useState(0);
-  const [eth, setEth] = useState('Loading...');
-  const [ethChange, setEthChange] = useState(0);
-  const [sol, setSol] = useState('Loading...');
-  const [solChange, setSolChange] = useState(0);
+  const [coins, setCoins] = useState<Coin[]>([]);
   const [updated, setUpdated] = useState('');
 
   useEffect(() => {
     async function getPrices() {
       try {
-        const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd&include_24hr_change=true');
+        const res = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&price_change_percentage=24h');
         const data = await res.json();
-        setBtc(formatUSD(data.bitcoin.usd));
-        setBtcChange(data.bitcoin.usd_24h_change);
-        setEth(formatUSD(data.ethereum.usd));
-        setEthChange(data.ethereum.usd_24h_change);
-        setSol(formatUSD(data.solana.usd));
-        setSolChange(data.solana.usd_24h_change);
+        setCoins(data);
         setUpdated(new Date().toLocaleTimeString());
       } catch (e) {
-        setBtc('Failed to load');
+        console.log('Failed to load');
       }
     }
     getPrices();
-    const timer = setInterval(getPrices, 10000);
+    const timer = setInterval(getPrices, 30000);
     return () => clearInterval(timer);
   }, []);
 
-  const changeStyle = (change: number) => ({
-    fontSize: 16,
-    marginBottom: 12,
-    color: change >= 0 ? '#00ff88' : '#ff4444',
-  });
+  const renderCoin = ({ item }: { item: Coin }) => {
+    const change = item.price_change_percentage_24h || 0;
+    const changeColor = change >= 0 ? '#00ff88' : '#ff4444';
+    const changeText = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
 
-  const fmtChange = (c: number) => (c >= 0 ? '+' : '') + c.toFixed(2) + '%';
+    return (
+      <View style={styles.row}>
+        <View>
+          <Text style={styles.name}>{item.name}</Text>
+          <Text style={styles.symbol}>{item.symbol.toUpperCase()}</Text>
+        </View>
+        <View style={styles.right}>
+          <Text style={styles.price}>{formatUSD(item.current_price)}</Text>
+          <Text style={{ color: changeColor, fontSize: 14 }}>{changeText}</Text>
+        </View>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Crypto Connection</Text>
-      <Text style={styles.price}>BTC: {btc}</Text>
-      <Text style={changeStyle(btcChange)}>{fmtChange(btcChange)} (24h)</Text>
-      <Text style={styles.price}>ETH: {eth}</Text>
-      <Text style={changeStyle(ethChange)}>{fmtChange(ethChange)} (24h)</Text>
-      <Text style={styles.price}>SOL: {sol}</Text>
-      <Text style={changeStyle(solChange)}>{fmtChange(solChange)} (24h)</Text>
+      <Text style={styles.subtitle}>Top 10 by Market Cap</Text>
+      <FlatList
+        data={coins}
+        keyExtractor={(item) => item.id}
+        renderItem={renderCoin}
+        style={styles.list}
+      />
       <Text style={styles.updated}>Updated: {updated}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0b0b16' },
-  title: { color: '#FFD700', fontSize: 28, fontWeight: 'bold', marginBottom: 20 },
-  price: { color: '#fff', fontSize: 24, marginTop: 8 },
-  updated: { color: '#888', fontSize: 14, marginTop: 24 },
+  container: { flex: 1, backgroundColor: '#0b0b16', paddingTop: 60 },
+  title: { color: '#FFD700', fontSize: 28, fontWeight: 'bold', textAlign: 'center', marginBottom: 4 },
+  subtitle: { color: '#888', fontSize: 16, textAlign: 'center', marginBottom: 16 },
+  list: { flex: 1 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: '#222' },
+  name: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  symbol: { color: '#888', fontSize: 14 },
+  right: { alignItems: 'flex-end' },
+  price: { color: '#fff', fontSize: 18 },
+  updated: { color: '#888', fontSize: 14, textAlign: 'center', padding: 16 },
 });
