@@ -1,83 +1,48 @@
-import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { useRouter } from 'expo-router';
 
-function formatUSD(n: number) {
-  const [dollars, cents] = n.toFixed(2).split('.');
-  const withCommas = dollars.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  return '$' + withCommas + '.' + cents;
-}
+const NEWS = [
+  { id: '1', title: 'Bitcoin holds steady as ETF inflows continue', source: 'CryptoPanic' },
+  { id: '2', title: 'Ethereum upgrade scheduled for next month', source: 'CoinDesk' },
+  { id: '3', title: 'Solana DEX volume hits all-time high', source: 'The Block' },
+];
 
-type Coin = {
-  id: string;
-  symbol: string;
-  name: string;
-  current_price: number;
-  price_change_percentage_24h: number;
-};
-
-export default function Index() {
-  const [coins, setCoins] = useState<Coin[]>([]);
-  const [updated, setUpdated] = useState('');
-
-  useEffect(() => {
-    async function getPrices() {
-      try {
-        const res = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&price_change_percentage=24h');
-        const data = await res.json();
-        setCoins(data);
-        setUpdated(new Date().toLocaleTimeString());
-      } catch (e) {
-        console.log('Failed to load');
-      }
-    }
-    getPrices();
-    const timer = setInterval(getPrices, 30000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const renderCoin = ({ item }: { item: Coin }) => {
-    const change = item.price_change_percentage_24h || 0;
-    const changeColor = change >= 0 ? '#00ff88' : '#ff4444';
-    const changeText = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
-
-    return (
-      <View style={styles.row}>
-        <View>
-          <Text style={styles.name}>{item.name}</Text>
-          <Text style={styles.symbol}>{item.symbol.toUpperCase()}</Text>
-        </View>
-        <View style={styles.right}>
-          <Text style={styles.price}>{formatUSD(item.current_price)}</Text>
-          <Text style={{ color: changeColor, fontSize: 14 }}>{changeText}</Text>
-        </View>
-      </View>
-    );
-  };
+export default function Home() {
+  const router = useRouter();
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <Text style={styles.title}>Crypto Connection</Text>
-      <Text style={styles.subtitle}>Top 10 by Market Cap</Text>
-      <FlatList
-        data={coins}
-        keyExtractor={(item) => item.id}
-        renderItem={renderCoin}
-        style={styles.list}
-      />
-      <Text style={styles.updated}>Updated: {updated}</Text>
-    </View>
+      <Text style={styles.tagline}>Your crypto command center</Text>
+
+      <Text style={styles.sectionTitle}>Latest News</Text>
+      {NEWS.map((item) => (
+        <View key={item.id} style={styles.newsCard}>
+          <Text style={styles.newsTitle}>{item.title}</Text>
+          <Text style={styles.newsSource}>{item.source}</Text>
+        </View>
+      ))}
+
+      <Pressable style={styles.button} onPress={() => router.push('/news')}>
+        <Text style={styles.buttonText}>Open News Hub →</Text>
+      </Pressable>
+
+      <Pressable style={[styles.button, styles.buttonSecondary]} onPress={() => router.push('/markets')}>
+        <Text style={styles.buttonText}>View Markets →</Text>
+      </Pressable>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0b0b16', paddingTop: 60 },
-  title: { color: '#FFD700', fontSize: 28, fontWeight: 'bold', textAlign: 'center', marginBottom: 4 },
-  subtitle: { color: '#888', fontSize: 16, textAlign: 'center', marginBottom: 16 },
-  list: { flex: 1 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: '#222' },
-  name: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  symbol: { color: '#888', fontSize: 14 },
-  right: { alignItems: 'flex-end' },
-  price: { color: '#fff', fontSize: 18 },
-  updated: { color: '#888', fontSize: 14, textAlign: 'center', padding: 16 },
+  container: { flex: 1, backgroundColor: '#0b0b16', padding: 20 },
+  title: { color: '#FFD700', fontSize: 32, fontWeight: 'bold', textAlign: 'center', marginTop: 40, marginBottom: 8 },
+  tagline: { color: '#888', fontSize: 16, textAlign: 'center', marginBottom: 32 },
+  sectionTitle: { color: '#FFD700', fontSize: 20, fontWeight: 'bold', marginBottom: 12 },
+  newsCard: { backgroundColor: '#1a1a2e', padding: 16, borderRadius: 8, marginBottom: 12 },
+  newsTitle: { color: '#fff', fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
+  newsSource: { color: '#888', fontSize: 14 },
+  button: { backgroundColor: '#FFD700', padding: 16, borderRadius: 8, marginTop: 16, alignItems: 'center' },
+  buttonSecondary: { backgroundColor: '#1a1a2e', borderWidth: 1, borderColor: '#FFD700' },
+  buttonText: { color: '#0b0b16', fontSize: 16, fontWeight: 'bold' },
 });
