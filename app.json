@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "CryptoConnection",
+    "name": "Crypto Connection",
     "slug": "CryptoConnection",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/icon.png",
     "scheme": "cryptoconnection",
     "userInterfaceStyle": "automatic",
     "ios": {
